@@ -36,8 +36,6 @@ export const Header: React.FC<HeaderProps> = ({
     { id: 'chat', label: 'Ask Model', icon: MessageSquare },
     { id: 'ingest', label: 'Train Data', icon: Database },
     { id: 'knowledge', label: 'Knowledge Base', icon: BookOpen },
-    { id: 'exam', label: 'Practice Exam', icon: GraduationCap },
-    { id: 'python', label: 'Python Backend', icon: Code2 },
   ] as const;
 
   const handleNavClick = (tab: 'ingest' | 'chat' | 'knowledge' | 'exam' | 'python') => {
