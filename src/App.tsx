@@ -48,7 +48,7 @@ export default function App() {
     let isMounted = true;
     async function initialIndex() {
       try {
-        const response = await fetch('https://mine-rag-api.onrender.com/api/index-data', {
+        const response = await fetch('/api/index-data', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
