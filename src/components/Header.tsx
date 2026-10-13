@@ -49,18 +49,12 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="flex items-center justify-between h-16">
           {/* Brand & Editorial Identity */}
           <div className="flex items-center gap-3 min-w-0">
-            <div className="h-9 w-9 rounded-lg bg-slate-900 dark:bg-slate-100 flex items-center justify-center text-white dark:text-slate-900 shrink-0 font-bold text-sm tracking-tighter">
-              DB
-            </div>
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <span className="font-bold text-base tracking-tight text-slate-900 dark:text-white">
-                  DocuBrain
+                  InunBrain
                 </span>
                 <span className="text-slate-400 dark:text-slate-500 text-xs hidden sm:inline" aria-hidden="true">·</span>
-                <span className="text-xs text-slate-500 dark:text-slate-400 font-medium truncate hidden sm:inline">
-                  React + Python
-                </span>
               </div>
               {/* Quiet unboxed metadata */}
               <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5 truncate">
