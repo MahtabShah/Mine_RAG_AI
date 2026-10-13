@@ -130,7 +130,7 @@ export const DataIngestionTab: React.FC<DataIngestionTabProps> = ({
         <div className="lg:col-span-8 space-y-6">
           {/* Metadata Section */}
           {/* Dataset Source Selection */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 sm:p-6 space-y-4 shadow-xs">
+          <div className="sm:p-6 space-y-4 shadow-xs">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white">
                 Dataset Content Source
