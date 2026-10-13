@@ -129,45 +129,11 @@ export const DataIngestionTab: React.FC<DataIngestionTabProps> = ({
         {/* Left Column: Form & Content Input (8 cols) */}
         <div className="lg:col-span-8 space-y-6">
           {/* Metadata Section */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 sm:p-6 space-y-4 shadow-xs">
-            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white">
-              1. Dataset Identity
-            </h2>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Topic / Subject Field
-                </label>
-                <input
-                  type="text"
-                  value={topic}
-                  onChange={(e) => setTopic(e.target.value)}
-                  placeholder="e.g. Mine Inundation & Water Irruption"
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3.5 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-900 dark:focus:ring-white transition"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Document / Archive Title
-                </label>
-                <input
-                  type="text"
-                  value={datasetTitle}
-                  onChange={(e) => setDatasetTitle(e.target.value)}
-                  placeholder="e.g. DGMS SANKET Inundation Analysis (1901-2022)"
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg px-3.5 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-900 dark:focus:ring-white transition"
-                />
-              </div>
-            </div>
-          </div>
-
           {/* Dataset Source Selection */}
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-5 sm:p-6 space-y-4 shadow-xs">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white">
-                2. Dataset Content Source
+                Dataset Content Source
               </h2>
 
               {/* Segmented Source Controls */}
