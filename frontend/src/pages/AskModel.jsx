@@ -281,7 +281,7 @@ export default function AskModel() {
         <div ref={bottomRef} />
       </div>
 
-      <div className="fixed mx-2 pt-4 w-[calc(100% - 10px)] bg-slate-50 left-0 right-0 bottom-0">
+      <div className="fixed mx-2 pt-4 w-[calc(100% - 10px)] bg-slate-50 left-0 right-0 bottom-[10px]">
         <form onSubmit={sendMessage} className="">
           {error && (
             <p
@@ -350,14 +350,6 @@ export default function AskModel() {
                 )}
               </button>
             </div>
-
-            <p className="my-3 text-center text-[11px] font-medium tracking-wide text-slate-400">
-              InunBrain can make mistakes. Verify important information.
-              <span className="mx-1.5 text-slate-300">·</span>
-              Enter to send
-              <span className="mx-1 text-slate-300">·</span>
-              Shift + Enter for a new line
-            </p>
           </div>
         </form>
       </div>

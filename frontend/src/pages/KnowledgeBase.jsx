@@ -162,10 +162,7 @@ const zoneWiseData = [
 // ============================================================
 
 const Card = ({ children, className = "" }) => (
-  <div
-    className={`bg-white rounded-lg border border-gray-200 p-5 sm:p-6 ${className}`}>
-    {children}
-  </div>
+  <div className={`my-4 sm:p-6 ${className}`}>{children}</div>
 );
 const SectionTitle = ({ icon: Icon, title, subtitle }) => (
   <div className="flex items-start gap-3 mb-5">
@@ -278,7 +275,7 @@ export default function InundationDashboard() {
 
   return (
     <div className="min-h-screen">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+      <div className="max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-8 sm:py-12">
         {/* ===== HEADER ===== */}
         <header className="mb-10 pb-8 border-b border-gray-200">
           <p className="text-xs uppercase tracking-wider text-gray-500 font-medium mb-2">
@@ -350,11 +347,11 @@ export default function InundationDashboard() {
                 title="Fatal Accidents & Fatalities Trend"
                 subtitle="Non-Coal Mines (2013–2022)"
               />
-              <div className="w-full h-72 sm:h-96">
+              <div className="w-full h-74 sm:h-96">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={fatalAccidentData}>
                     <defs>
-                      <linearGradient id="colorAcc" x1="0" y1="0" x2="0" y2="1">
+                      <linearGradient id="colorAcc" x1="0" y1="0" x2="0" y2="0">
                         <stop
                           offset="5%"
                           stopColor="#bd8f69"
@@ -366,7 +363,7 @@ export default function InundationDashboard() {
                           stopOpacity={0}
                         />
                       </linearGradient>
-                      <linearGradient id="colorFat" x1="0" y1="0" x2="0" y2="1">
+                      <linearGradient id="colorFat" x1="0" y1="0" x2="0" y2="0">
                         <stop
                           offset="5%"
                           stopColor="#bd8f69"
@@ -381,10 +378,10 @@ export default function InundationDashboard() {
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis dataKey="year" stroke="#9ca3af" fontSize={12} />
-                    <YAxis stroke="#9ca3af" fontSize={12} />
+                    <YAxis width={20} stroke="#9ca3af" fontSize={12} />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend
-                      wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
+                      wrapperStyle={{ fontSize: 10, paddingTop: 8 }}
                       iconType="circle"
                       iconSize={8}
                     />
@@ -432,7 +429,7 @@ export default function InundationDashboard() {
                   <BarChart data={seriousAccidentData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis dataKey="year" stroke="#9ca3af" fontSize={12} />
-                    <YAxis stroke="#9ca3af" fontSize={12} />
+                    <YAxis width={20} stroke="#9ca3af" fontSize={12} />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend
                       wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
@@ -480,7 +477,12 @@ export default function InundationDashboard() {
                   <LineChart data={fatalAccidentData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis dataKey="year" stroke="#9ca3af" fontSize={12} />
-                    <YAxis domain={[1, 1.6]} stroke="#9ca3af" fontSize={12} />
+                    <YAxis
+                      width={20}
+                      domain={[1, 1.6]}
+                      stroke="#9ca3af"
+                      fontSize={12}
+                    />
                     <Tooltip content={<CustomTooltip />} />
                     <Line
                       type="monotone"
@@ -526,7 +528,7 @@ export default function InundationDashboard() {
                     }))}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis dataKey="year" stroke="#9ca3af" fontSize={12} />
-                    <YAxis stroke="#9ca3af" fontSize={12} />
+                    <YAxis width={20} stroke="#9ca3af" fontSize={12} />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend
                       wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
@@ -620,6 +622,7 @@ export default function InundationDashboard() {
                       <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                       <XAxis type="number" stroke="#9ca3af" fontSize={11} />
                       <YAxis
+                        width={20}
                         type="category"
                         dataKey="cause"
                         stroke="#9ca3af"
@@ -790,7 +793,7 @@ export default function InundationDashboard() {
                   <BarChart data={placeYearlyData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis dataKey="year" stroke="#9ca3af" fontSize={12} />
-                    <YAxis stroke="#9ca3af" fontSize={12} />
+                    <YAxis width={20} stroke="#9ca3af" fontSize={12} />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend
                       wrapperStyle={{ fontSize: 12, paddingTop: 8 }}
@@ -869,7 +872,7 @@ export default function InundationDashboard() {
                         height={80}
                         interval={0}
                       />
-                      <YAxis stroke="#9ca3af" fontSize={12} />
+                      <YAxis width={20} stroke="#9ca3af" fontSize={12} />
                       <Tooltip content={<CustomTooltip />} />
                       <Bar dataKey="count" radius={[4, 4, 0, 0]}>
                         {mineralWiseData.map((entry, i) => (
