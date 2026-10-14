@@ -1,19 +1,28 @@
 import { Navigate, Route, Routes } from "react-router-dom";
-import Layout from "./components/Layout";
+import { useState } from "react";
 import AskModel from "./pages/AskModel";
-import TrainData from "./pages/TrainData";
-import KnowledgeBase from "./pages/KnowledgeBase";
+import InundationDashboard from "./pages/KnowledgeBase";
+import Header from "./components/Header";
 
 export default function App() {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const closeMenu = () => setMenuOpen(false);
+  const [activeTab, setActiveTab] = useState("knowledge");
   return (
-    <Routes>
-      <Route element={<Layout />}>
-        <Route index element={<Navigate to="/ask" replace />} />
-        <Route path="/ask" element={<AskModel />} />
-        <Route path="/train" element={<TrainData />} />
-        <Route path="/knowledge" element={<KnowledgeBase />} />
-        <Route path="*" element={<Navigate to="/ask" replace />} />
-      </Route>
-    </Routes>
+    <>
+      <div className="flex min-h-screen flex-col overflow-x-clip border-x border-slate-200 bg-white">
+        <Header
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          topic="Mine Inundation & Water Irruption Dis..."
+          isTrained={true}
+        />
+
+        <main className="flex min-h-0 flex-1 p-2 flex-col bg-slate-50">
+          {activeTab == "chat" && <AskModel />}
+          {activeTab == "knowledge" && <InundationDashboard />}
+        </main>
+      </div>
+    </>
   );
 }

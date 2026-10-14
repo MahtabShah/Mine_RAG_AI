@@ -28,7 +28,7 @@ body {
 }
 
 /* Chrome, Edge, Safari */
-.chat_section::-webkit-scrollbar {
+*::-webkit-scrollbar {
   display: none;
 }
 

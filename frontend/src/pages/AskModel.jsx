@@ -123,7 +123,7 @@ export default function AskModel() {
   return (
     <div className="mx-auto mt-4 w-[100%] pb-[200px] flex flex-col overflow-hidden">
       {/* Chat messages */}
-      <div className="flex-1 w-[100%] max-w-3xl mx-auto space-y-6 chat_section p-4 sm:p-6">
+      <div className="flex-1 w-[100%] max-w-4xl mx-auto space-y-6 chat_section p-4 sm:p-6">
         {messages.length === 0 && (
           <div className="flex h-full flex-col items-center justify-center text-center">
             <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-xl text-blue-600">
