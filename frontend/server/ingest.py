@@ -21,6 +21,104 @@ print("Loading embedding model...")
 embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
 
+
+
+def build_index(client=None, collection_name=None):
+    """
+    Build the ChromaDB collection from files in data/.
+    Returns the populated collection.
+    
+    If client is None, creates a new persistent client.
+    """
+    from pathlib import Path as _Path
+    
+    if collection_name is None:
+        collection_name = f"{COLLECTION_NAME}_new"
+    
+    if client is None:
+        client = chromadb.PersistentClient(path=str(DB_DIR))
+    
+    if not DATA_DIR.exists():
+        raise FileNotFoundError(f"Data folder not found: {DATA_DIR}")
+    
+    files = sorted(
+        path for path in DATA_DIR.rglob("*")
+        if path.is_file() and path.suffix.lower() in {".pdf", ".docx", ".txt"}
+    )
+    
+    if not files:
+        raise FileNotFoundError("No PDF, DOCX, or TXT files found in data/.")
+    
+    documents = []
+    ids = []
+    metadatas = []
+    successful_files = 0
+    
+    print(f"[build_index] Found {len(files)} files.", flush=True)
+    
+    for file_path in files:
+        try:
+            text = extract_text(file_path)
+        except Exception as exc:
+            print(f"[build_index] Skipping {file_path.name}: {exc}", flush=True)
+            continue
+        
+        if not text.strip():
+            continue
+        
+        chunks = chunk_text(text)
+        if not chunks:
+            continue
+        
+        successful_files += 1
+        
+        for index, chunk in enumerate(chunks):
+            documents.append(chunk)
+            relative_path = file_path.relative_to(DATA_DIR).as_posix()
+            ids.append(f"{relative_path}:{index}")
+            metadatas.append({"source": relative_path, "chunk": index})
+    
+    if not documents:
+        raise RuntimeError("No text extracted from any file.")
+    
+    print(f"[build_index] Embedding {len(documents)} chunks...", flush=True)
+    
+    embeddings = embedding_model.encode(
+        documents,
+        batch_size=32,
+        show_progress_bar=False,
+        normalize_embeddings=True,
+    ).tolist()
+    
+    # Delete existing collection if present, then create fresh
+    try:
+        client.delete_collection(name=collection_name)
+    except Exception:
+        pass
+    
+    collection = client.create_collection(
+        name=collection_name,
+        metadata={"hnsw:space": "cosine"},
+    )
+    
+    batch_size = 500
+    for start in range(0, len(documents), batch_size):
+        end = min(start + batch_size, len(documents))
+        collection.add(
+            ids=ids[start:end],
+            documents=documents[start:end],
+            embeddings=embeddings[start:end],
+            metadatas=metadatas[start:end],
+        )
+    
+    print(
+        f"[build_index] Done. {collection.count()} chunks stored.",
+        flush=True,
+    )
+    
+    return collection
+
+
 # --------------------------------------------------
 # EXTRACT TEXT FROM FILES
 # --------------------------------------------------

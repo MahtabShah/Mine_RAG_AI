@@ -67,59 +67,38 @@ def get_embedding_model():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """
-    Runs after the server binds its port.
-    This is important on Render: if we did this at
-    import time, uvicorn wouldn't bind before the
-    port scan timed out.
-    """
     global chroma_client, knowledge
-
     print("Opening ChromaDB...", flush=True)
     chroma_client = chromadb.PersistentClient(path=str(DB_DIR))
-
+    
     try:
         knowledge = chroma_client.get_collection(name=COLLECTION_NAME)
-
         if knowledge.count() == 0:
             raise ValueError("collection is empty")
-
-        print(
-            f"Knowledge chunks: {knowledge.count()}",
-            flush=True,
-        )
-
+        print(f"Knowledge chunks: {knowledge.count()}", flush=True)
+    
     except Exception as exc:
-        knowledge = None
         print(
             f"Knowledge collection not usable ({exc}). "
-            f"Starting empty.",
+            f"Rebuilding from data/...",
             flush=True,
         )
-
-        # --------------------------------------------------
-        # OPTIONAL: rebuild the index on startup.
-        # Uncomment and adapt once ingest.py exposes a
-        # function like build_index(client, name).
-        # --------------------------------------------------
-        # try:
-        #     from ingest import build_index
-        #     knowledge = build_index(chroma_client, COLLECTION_NAME)
-        #     print(
-        #         f"Rebuilt knowledge chunks: {knowledge.count()}",
-        #         flush=True,
-        #     )
-        # except Exception as rebuild_exc:
-        #     print(
-        #         f"Rebuild failed: {rebuild_exc}",
-        #         flush=True,
-        #     )
-
+        try:
+            from ingest import build_index
+            knowledge = build_index(chroma_client, COLLECTION_NAME)
+            print(
+                f"Rebuilt knowledge chunks: {knowledge.count()}",
+                flush=True,
+            )
+        except Exception as rebuild_exc:
+            knowledge = None
+            print(
+                f"Rebuild failed: {rebuild_exc}",
+                flush=True,
+            )
+    
     yield
-
     print("Shutting down.", flush=True)
-
-
 # --------------------------------------------------
 # APP
 # --------------------------------------------------
