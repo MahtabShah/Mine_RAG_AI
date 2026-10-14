@@ -30,7 +30,7 @@ app = FastAPI(title="InunBrain API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["https://mine-rag-ai.onrender.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -43,9 +43,25 @@ app.add_middleware(
 
 print("Loading embedding model...")
 
-embedding_model = SentenceTransformer(
-    "all-MiniLM-L6-v2"
-)
+
+embedding_model = None
+
+
+def get_embedding_model():
+    global embedding_model
+
+    if embedding_model is None:
+        print("Loading embedding model...", flush=True)
+
+        embedding_model = SentenceTransformer(
+            "all-MiniLM-L6-v2",
+            device="cpu",
+        )
+
+        print("Embedding model loaded.", flush=True)
+
+    return embedding_model
+
 
 chroma_client = chromadb.PersistentClient(
     path=str(DB_DIR)
@@ -86,11 +102,12 @@ def retrieve_context(question: str, top_k: int = 4):
     if knowledge is None or knowledge.count() == 0:
         return []
 
-    query_embedding = embedding_model.encode(
+    model = get_embedding_model()
+
+    query_embedding = model.encode(
         question,
         normalize_embeddings=True,
     ).tolist()
-
     result = knowledge.query(
         query_embeddings=[query_embedding],
         n_results=min(top_k, knowledge.count()),
