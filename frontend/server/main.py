@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sentence_transformers import SentenceTransformer
+from inundation_context import load_inundation_context
 
 
 # --------------------------------------------------
@@ -254,6 +255,9 @@ def chat(request: ChatRequest):
             "in the professor's indexed inundation notes."
         )
 
+
+    inundation_reference = load_inundation_context()
+
     system_instruction = f"""
 You are InunBrain, a helpful AI assistant.
 
@@ -263,6 +267,12 @@ You have access to professor-provided material below.
 <professor_material>
 {context}
 </professor_material>
+
+
+<inundation_reference>
+{inundation_reference}
+</inundation_reference>
+
 
 Follow these rules:
 
