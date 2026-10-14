@@ -23,6 +23,7 @@ load_dotenv(BASE_DIR / ".env")
 API_KEY = os.getenv("GEMINI_API_KEY")
 MODEL = os.getenv("GEMINI_MODEL")
 PORT = os.getenv("PORT")
+VITE_FRONTEND_URL = os.getenv("VITE_FRONTEND_URL")
 
 DB_DIR = BASE_DIR / "chroma_db"
 COLLECTION_NAME = "professor_knowledge_new"
@@ -31,7 +32,7 @@ app = FastAPI(title="InunBrain API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://mine-rag-ai.onrender.com"],
+    allow_origins=[VITE_FRONTEND_URL],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
