@@ -1,5 +1,5 @@
-
 from pathlib import Path
+import gc
 
 import chromadb
 from sentence_transformers import SentenceTransformer
@@ -17,106 +17,24 @@ DB_DIR = BASE_DIR / "chroma_db"
 
 COLLECTION_NAME = "professor_knowledge"
 
-print("Loading embedding model...")
-embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+
+# --------------------------------------------------
+# LAZY EMBEDDING MODEL
+# --------------------------------------------------
+
+_embedding_model = None
 
 
+def get_embedding_model():
+    """Load the sentence-transformer model on first use."""
+    global _embedding_model
 
+    if _embedding_model is None:
+        print("[ingest] Loading embedding model...", flush=True)
+        _embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+        print("[ingest] Embedding model loaded.", flush=True)
 
-def build_index(client=None, collection_name=None):
-    """
-    Build the ChromaDB collection from files in data/.
-    Returns the populated collection.
-    
-    If client is None, creates a new persistent client.
-    """
-    from pathlib import Path as _Path
-    
-    if collection_name is None:
-        collection_name = f"{COLLECTION_NAME}_new"
-    
-    if client is None:
-        client = chromadb.PersistentClient(path=str(DB_DIR))
-    
-    if not DATA_DIR.exists():
-        raise FileNotFoundError(f"Data folder not found: {DATA_DIR}")
-    
-    files = sorted(
-        path for path in DATA_DIR.rglob("*")
-        if path.is_file() and path.suffix.lower() in {".pdf", ".docx", ".txt"}
-    )
-    
-    if not files:
-        raise FileNotFoundError("No PDF, DOCX, or TXT files found in data/.")
-    
-    documents = []
-    ids = []
-    metadatas = []
-    successful_files = 0
-    
-    print(f"[build_index] Found {len(files)} files.", flush=True)
-    
-    for file_path in files:
-        try:
-            text = extract_text(file_path)
-        except Exception as exc:
-            print(f"[build_index] Skipping {file_path.name}: {exc}", flush=True)
-            continue
-        
-        if not text.strip():
-            continue
-        
-        chunks = chunk_text(text)
-        if not chunks:
-            continue
-        
-        successful_files += 1
-        
-        for index, chunk in enumerate(chunks):
-            documents.append(chunk)
-            relative_path = file_path.relative_to(DATA_DIR).as_posix()
-            ids.append(f"{relative_path}:{index}")
-            metadatas.append({"source": relative_path, "chunk": index})
-    
-    if not documents:
-        raise RuntimeError("No text extracted from any file.")
-    
-    print(f"[build_index] Embedding {len(documents)} chunks...", flush=True)
-    
-    embeddings = embedding_model.encode(
-        documents,
-        batch_size=32,
-        show_progress_bar=False,
-        normalize_embeddings=True,
-    ).tolist()
-    
-    # Delete existing collection if present, then create fresh
-    try:
-        client.delete_collection(name=collection_name)
-    except Exception:
-        pass
-    
-    collection = client.create_collection(
-        name=collection_name,
-        metadata={"hnsw:space": "cosine"},
-    )
-    
-    batch_size = 500
-    for start in range(0, len(documents), batch_size):
-        end = min(start + batch_size, len(documents))
-        collection.add(
-            ids=ids[start:end],
-            documents=documents[start:end],
-            embeddings=embeddings[start:end],
-            metadatas=metadatas[start:end],
-        )
-    
-    print(
-        f"[build_index] Done. {collection.count()} chunks stored.",
-        flush=True,
-    )
-    
-    return collection
+    return _embedding_model
 
 
 # --------------------------------------------------
@@ -128,36 +46,23 @@ def extract_text(file_path: Path) -> str:
 
     if extension == ".pdf":
         reader = PdfReader(str(file_path))
-
         pages = []
-
         for page in reader.pages:
             pages.append(page.extract_text() or "")
-
         return "\n".join(pages)
 
     elif extension == ".docx":
         document = Document(str(file_path))
-
-        paragraphs = [
-            paragraph.text
-            for paragraph in document.paragraphs
-        ]
-
-        # Extract text from tables too.
+        paragraphs = [p.text for p in document.paragraphs]
         for table in document.tables:
             for row in table.rows:
                 paragraphs.append(
                     " | ".join(cell.text for cell in row.cells)
                 )
-
         return "\n".join(paragraphs)
 
     elif extension == ".txt":
-        return file_path.read_text(
-            encoding="utf-8",
-            errors="replace",
-        )
+        return file_path.read_text(encoding="utf-8", errors="replace")
 
     return ""
 
@@ -171,7 +76,6 @@ def chunk_text(
     chunk_size: int = 1000,
     overlap: int = 150,
 ) -> list[str]:
-
     text = " ".join(text.split())
 
     if not text:
@@ -182,216 +86,174 @@ def chunk_text(
 
     while start < len(text):
         end = min(start + chunk_size, len(text))
-
         chunk = text[start:end].strip()
-
         if chunk:
             chunks.append(chunk)
-
         if end == len(text):
             break
-
         start = end - overlap
 
     return chunks
 
 
 # --------------------------------------------------
-# MAIN INGESTION PIPELINE
+# BUILD INDEX (MEMORY-OPTIMIZED)
 # --------------------------------------------------
 
-def main():
+def build_index(
+    client=None,
+    collection_name=None,
+    embedding_model=None,
+):
+    """
+    Build the ChromaDB collection from files in data/.
+
+    - Embeds in small batches to stay under Render's 512 MB limit.
+    - Adds each batch immediately to ChromaDB so we never hold
+      all embeddings in memory at once.
+    - Returns the populated collection.
+    """
+
+    if collection_name is None:
+        collection_name = f"{COLLECTION_NAME}_new"
+
+    if client is None:
+        client = chromadb.PersistentClient(path=str(DB_DIR))
+
+    if embedding_model is None:
+        embedding_model = get_embedding_model()
 
     if not DATA_DIR.exists():
-        raise FileNotFoundError(
-            f"Data folder not found: {DATA_DIR}"
-        )
+        raise FileNotFoundError(f"Data folder not found: {DATA_DIR}")
 
-    # Find all supported files inside data/.
+    # -------- find files --------
     files = sorted(
         path
         for path in DATA_DIR.rglob("*")
         if path.is_file()
-        and path.suffix.lower() in {
-            ".pdf",
-            ".docx",
-            ".txt",
-        }
+        and path.suffix.lower() in {".pdf", ".docx", ".txt"}
     )
 
     if not files:
-        print("No PDF, DOCX, or TXT files found in data/.")
-        return
+        raise FileNotFoundError("No PDF, DOCX, or TXT files found in data/.")
 
+    print(f"[build_index] Found {len(files)} files.", flush=True)
+
+    # -------- extract + chunk --------
     documents = []
     ids = []
     metadatas = []
-
     successful_files = 0
 
-    print(f"\nFound {len(files)} files.")
-
-    # --------------------------------------------------
-    # EXTRACT AND CHUNK EVERY DOCUMENT
-    # --------------------------------------------------
-
     for file_path in files:
-
-        print(f"\nReading: {file_path.name}")
+        print(f"[build_index] Reading: {file_path.name}", flush=True)
 
         try:
             text = extract_text(file_path)
-
         except Exception as exc:
-            print(f"Could not read {file_path.name}: {exc}")
+            print(f"[build_index] Skipping {file_path.name}: {exc}", flush=True)
             continue
 
         if not text.strip():
             print(
-                "No extractable text found. "
-                "This may be a scanned PDF requiring OCR."
+                f"[build_index] No extractable text in {file_path.name}.",
+                flush=True,
             )
             continue
 
         chunks = chunk_text(text)
-
         if not chunks:
-            print("No text chunks generated.")
             continue
 
         successful_files += 1
 
         for index, chunk in enumerate(chunks):
-
-            documents.append(chunk)
-
-            # Include relative path to avoid ID collisions
-            # when different folders contain identical filenames.
             relative_path = file_path.relative_to(DATA_DIR).as_posix()
-            document_id = f"{relative_path}:{index}"
+            documents.append(chunk)
+            ids.append(f"{relative_path}:{index}")
+            metadatas.append({"source": relative_path, "chunk": index})
 
-            ids.append(document_id)
-
-            metadatas.append({
-                "source": relative_path,
-                "chunk": index,
-            })
-
-        print(f"Extracted characters: {len(text)}")
-        print(f"Chunks created: {len(chunks)}")
-
-    # Never delete the existing collection if extraction fails.
-    if not documents:
         print(
-            "\nNo text was extracted successfully."
-            "\nExisting knowledge collection was not changed."
+            f"[build_index] {file_path.name}: {len(chunks)} chunks",
+            flush=True,
         )
-        return
 
-    # --------------------------------------------------
-    # CREATE EMBEDDINGS
-    # --------------------------------------------------
+    if not documents:
+        raise RuntimeError("No text extracted from any file.")
 
     print(
-        f"\nCreating embeddings for "
-        f"{len(documents)} chunks..."
+        f"[build_index] Total chunks to embed: {len(documents)}",
+        flush=True,
     )
 
-    embeddings = embedding_model.encode(
-        documents,
-        batch_size=32,
-        show_progress_bar=True,
-        normalize_embeddings=True,
-    ).tolist()
-
-    # --------------------------------------------------
-    # CONNECT TO PERSISTENT CHROMADB
-    # --------------------------------------------------
-
-    client = chromadb.PersistentClient(
-        path=str(DB_DIR)
-    )
-
-    # Prepare the new collection before replacing the old one.
-    new_collection_name = f"{COLLECTION_NAME}_new"
-
+    # -------- fresh collection --------
     try:
-        client.delete_collection(
-            name=new_collection_name
-        )
+        client.delete_collection(name=collection_name)
     except Exception:
         pass
 
-    new_collection = client.create_collection(
-        name=new_collection_name,
+    collection = client.create_collection(
+        name=collection_name,
         metadata={"hnsw:space": "cosine"},
     )
 
-    # Insert in batches.
-    batch_size = 500
+    # -------- embed in small batches, add immediately --------
+    embed_batch_size = 16   # kitne chunks ek baar embed karo
+    model_batch_size = 8    # model internal batch
 
-    try:
-        for start in range(0, len(documents), batch_size):
-            end = min(start + batch_size, len(documents))
+    total = len(documents)
 
-            new_collection.add(
-                ids=ids[start:end],
-                documents=documents[start:end],
-                embeddings=embeddings[start:end],
-                metadatas=metadatas[start:end],
-            )
+    for start in range(0, total, embed_batch_size):
+        end = min(start + embed_batch_size, total)
 
-        print(
-            f"\nNew collection prepared with "
-            f"{new_collection.count()} chunks."
+        batch_docs = documents[start:end]
+        batch_ids = ids[start:end]
+        batch_metas = metadatas[start:end]
+
+        batch_embeddings = embedding_model.encode(
+            batch_docs,
+            batch_size=model_batch_size,
+            show_progress_bar=False,
+            normalize_embeddings=True,
+        ).tolist()
+
+        collection.add(
+            ids=batch_ids,
+            documents=batch_docs,
+            embeddings=batch_embeddings,
+            metadatas=batch_metas,
         )
 
-        # Replace the previous collection only after
-        # the new collection has been populated.
-        # ChromaDB 1.5.9: keep the prepared collection
-        # under its existing name; do not rename it.
-        collection = client.get_collection(
-            name=new_collection_name
-        )
+        # free memory
+        del batch_embeddings
+        gc.collect()
 
-        if collection.count() != len(documents):
-            raise RuntimeError(
-                "Chunk count mismatch. "
-                "Expected {}, found {}.".format(
-                    len(documents), collection.count()
-                )
-            )
+        print(f"[build_index] Added {end}/{total} chunks", flush=True)
 
-        print("Verified all chunks in the new collection.")
+    print(
+        f"[build_index] Done. {collection.count()} chunks stored.",
+        flush=True,
+    )
 
-    except Exception:
-        # Keep the old collection if inserting fails.
-        try:
-            client.delete_collection(
-                name=new_collection_name
-            )
-        except Exception:
-            pass
+    return collection
 
-        raise
 
-    # --------------------------------------------------
-    # SUCCESS
-    # --------------------------------------------------
+# --------------------------------------------------
+# CLI ENTRYPOINT (standalone ingestion)
+# --------------------------------------------------
 
-    collection = client.get_collection(
-      name=f"{COLLECTION_NAME}_new"
+def main():
+    client = chromadb.PersistentClient(path=str(DB_DIR))
+    collection = build_index(
+        client=client,
+        collection_name=f"{COLLECTION_NAME}_new",
     )
 
     print("\n====================================")
     print("INGESTION COMPLETED SUCCESSFULLY")
     print("====================================")
-    print(f"Files discovered: {len(files)}")
-    print(f"Files processed: {successful_files}")
     print(f"Total chunks stored: {collection.count()}")
     print(f"Database location: {DB_DIR}")
-    print("Keyword filtering: DISABLED")
-    print("All extracted document content indexed.")
     print("====================================")
 
 

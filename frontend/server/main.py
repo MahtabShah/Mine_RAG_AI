@@ -85,7 +85,11 @@ async def lifespan(app: FastAPI):
         )
         try:
             from ingest import build_index
-            knowledge = build_index(chroma_client, COLLECTION_NAME)
+            knowledge = build_index(
+                client=chroma_client,
+                collection_name=COLLECTION_NAME,
+                embedding_model=get_embedding_model(),
+            )
             print(
                 f"Rebuilt knowledge chunks: {knowledge.count()}",
                 flush=True,
