@@ -1,6 +1,0 @@
-{
-  "name": "DocuBrain AI - Custom Data Q&A & Python RAG System",
-  "description": "Train and query AI models on your professor's custom data and topics with grounded answers, source citations, and full React + Python architecture.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
