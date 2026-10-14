@@ -291,7 +291,7 @@ export default function AskModel() {
             </p>
           )}
 
-          <div className="mx-auto max-w-3xl">
+          <div className="mx-auto max-w-4xl">
             <div
               className="group relative flex items-end gap-2 rounded-[14px] border border-slate-200 bg-white p-2 shadow-sm transition-all duration-200
       focus-within:border-blue-300
