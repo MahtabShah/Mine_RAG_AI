@@ -1,7 +1,7 @@
-
 import os
 import json
 from pathlib import Path
+from contextlib import asynccontextmanager
 
 import chromadb
 import requests
@@ -22,62 +22,118 @@ load_dotenv(BASE_DIR / ".env")
 
 API_KEY = os.getenv("GEMINI_API_KEY")
 MODEL = os.getenv("GEMINI_MODEL")
-PORT = os.getenv("PORT")
 VITE_FRONTEND_URL = os.getenv("VITE_FRONTEND_URL")
 
-DB_DIR = BASE_DIR / "chroma_db"
+DB_DIR = Path(os.getenv("CHROMA_DB_PATH", BASE_DIR / "chroma_db"))
 COLLECTION_NAME = "professor_knowledge_new"
 
-app = FastAPI(title="InunBrain API")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[VITE_FRONTEND_URL],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Build the CORS origin list safely.
+ALLOWED_ORIGINS = [
+    origin
+    for origin in [
+        VITE_FRONTEND_URL,
+        "http://localhost:5173",
+    ]
+    if origin
+]
 
 
 # --------------------------------------------------
-# LOAD THE EXISTING KNOWLEDGE BASE
+# GLOBAL STATE
 # --------------------------------------------------
-
-print("Loading embedding model...")
-
 
 embedding_model = None
+chroma_client = None
+knowledge = None
 
 
 def get_embedding_model():
+    """Load the sentence-transformer model on first use."""
     global embedding_model
 
     if embedding_model is None:
         print("Loading embedding model...", flush=True)
-
         embedding_model = SentenceTransformer(
             "all-MiniLM-L6-v2",
             device="cpu",
         )
-
         print("Embedding model loaded.", flush=True)
 
     return embedding_model
 
 
-chroma_client = chromadb.PersistentClient(
-    path=str(DB_DIR)
+# --------------------------------------------------
+# LIFESPAN
+# --------------------------------------------------
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Runs after the server binds its port.
+    This is important on Render: if we did this at
+    import time, uvicorn wouldn't bind before the
+    port scan timed out.
+    """
+    global chroma_client, knowledge
+
+    print("Opening ChromaDB...", flush=True)
+    chroma_client = chromadb.PersistentClient(path=str(DB_DIR))
+
+    try:
+        knowledge = chroma_client.get_collection(name=COLLECTION_NAME)
+
+        if knowledge.count() == 0:
+            raise ValueError("collection is empty")
+
+        print(
+            f"Knowledge chunks: {knowledge.count()}",
+            flush=True,
+        )
+
+    except Exception as exc:
+        knowledge = None
+        print(
+            f"Knowledge collection not usable ({exc}). "
+            f"Starting empty.",
+            flush=True,
+        )
+
+        # --------------------------------------------------
+        # OPTIONAL: rebuild the index on startup.
+        # Uncomment and adapt once ingest.py exposes a
+        # function like build_index(client, name).
+        # --------------------------------------------------
+        # try:
+        #     from ingest import build_index
+        #     knowledge = build_index(chroma_client, COLLECTION_NAME)
+        #     print(
+        #         f"Rebuilt knowledge chunks: {knowledge.count()}",
+        #         flush=True,
+        #     )
+        # except Exception as rebuild_exc:
+        #     print(
+        #         f"Rebuild failed: {rebuild_exc}",
+        #         flush=True,
+        #     )
+
+    yield
+
+    print("Shutting down.", flush=True)
+
+
+# --------------------------------------------------
+# APP
+# --------------------------------------------------
+
+app = FastAPI(title="InunBrain API", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True if ALLOWED_ORIGINS else False,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
-
-try:
-    knowledge = chroma_client.get_collection(
-        name=COLLECTION_NAME
-    )
-    print(f"Knowledge chunks: {knowledge.count()}")
-
-except Exception:
-    knowledge = None
-    print("Knowledge collection not found.")
 
 
 # --------------------------------------------------
@@ -97,7 +153,7 @@ class ChatRequest(BaseModel):
 
 
 # --------------------------------------------------
-# RETRIEVE RELEVANT PROFESSOR NOTES
+# RETRIEVE RELEVANT NOTES
 # --------------------------------------------------
 
 def retrieve_context(question: str, top_k: int = 4):
@@ -110,14 +166,11 @@ def retrieve_context(question: str, top_k: int = 4):
         question,
         normalize_embeddings=True,
     ).tolist()
+
     result = knowledge.query(
         query_embeddings=[query_embedding],
         n_results=min(top_k, knowledge.count()),
-        include=[
-            "documents",
-            "metadatas",
-            "distances",
-        ],
+        include=["documents", "metadatas", "distances"],
     )
 
     matches = []
@@ -127,18 +180,13 @@ def retrieve_context(question: str, top_k: int = 4):
     distances = result.get("distances", [[]])[0]
 
     for document, metadata, distance in zip(
-        documents,
-        metadatas,
-        distances,
+        documents, metadatas, distances
     ):
-        # Initial cosine-distance cutoff.
-        # Tune this after testing real questions.
+        # Tune this cutoff after testing real questions.
         if distance <= 0.65:
             matches.append({
                 "text": document,
-                "source": metadata.get(
-                    "source", "Professor notes"
-                ),
+                "source": metadata.get("source", "Professor notes"),
                 "distance": distance,
             })
 
@@ -169,10 +217,9 @@ def chat(request: ChatRequest):
     if not API_KEY or not MODEL:
         raise HTTPException(
             status_code=500,
-            detail="GEMINI_API_KEY or GEMINI_MODEL is missing in .env",
+            detail="GEMINI_API_KEY or GEMINI_MODEL is missing.",
         )
 
-    # Validate roles and convert chat history to Gemini format.
     contents = []
 
     for message in request.messages:
@@ -201,26 +248,22 @@ def chat(request: ChatRequest):
             detail="The last message must be from the user",
         )
 
-    # Retrieve context using the latest question.
     question = request.messages[-1].content
     matches = retrieve_context(question)
 
     print("\n========== RAG DEBUG ==========")
     print("Question:", question)
     print("Retrieved chunks:", len(matches))
-
     for item in matches:
         print("Source:", item["source"])
         print("Distance:", item["distance"])
         print("Content:", item["text"][:300])
         print("-------------------------------")
-
     print("================================\n")
 
     if matches:
         context = "\n\n".join(
-            f"Source: {item['source']}\n"
-            f"{item['text']}"
+            f"Source: {item['source']}\n{item['text']}"
             for item in matches
         )
     else:
@@ -286,7 +329,6 @@ Follow these rules:
             stream=True,
             timeout=(10, 120),
         )
-
     except requests.RequestException as exc:
         raise HTTPException(
             status_code=502,
@@ -297,7 +339,6 @@ Follow these rules:
         status = upstream.status_code
         print("Gemini API error:", status, upstream.text)
         upstream.close()
-
         raise HTTPException(
             status_code=502,
             detail=f"Gemini API returned status {status}.",
@@ -308,34 +349,23 @@ Follow these rules:
             for line in upstream.iter_lines():
                 if not line:
                     continue
-
                 if isinstance(line, bytes):
                     line = line.decode("utf-8", errors="replace")
-
                 if not line.startswith("data:"):
                     continue
-
                 raw = line[5:].strip()
-
                 if raw == "[DONE]":
                     break
-
                 try:
                     data = json.loads(raw)
                 except json.JSONDecodeError:
                     continue
-
                 for candidate in data.get("candidates", []):
-                    parts = candidate.get(
-                        "content", {}
-                    ).get("parts", [])
-
+                    parts = candidate.get("content", {}).get("parts", [])
                     for part in parts:
                         text = part.get("text", "")
-
                         if text:
                             yield text
-
         finally:
             upstream.close()
 
