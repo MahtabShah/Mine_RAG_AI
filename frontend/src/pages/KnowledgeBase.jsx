@@ -622,7 +622,6 @@ export default function InundationDashboard() {
                       <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                       <XAxis type="number" stroke="#9ca3af" fontSize={11} />
                       <YAxis
-                        width={20}
                         type="category"
                         dataKey="cause"
                         stroke="#9ca3af"
