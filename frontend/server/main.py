@@ -22,6 +22,7 @@ load_dotenv(BASE_DIR / ".env")
 
 API_KEY = os.getenv("GEMINI_API_KEY")
 MODEL = os.getenv("GEMINI_MODEL")
+PORT = os.getenv("PORT")
 
 DB_DIR = BASE_DIR / "chroma_db"
 COLLECTION_NAME = "professor_knowledge_new"
