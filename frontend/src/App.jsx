@@ -7,7 +7,7 @@ import Header from "./components/Header";
 export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const closeMenu = () => setMenuOpen(false);
-  const [activeTab, setActiveTab] = useState("knowledge");
+  const [activeTab, setActiveTab] = useState("chat");
   return (
     <>
       <div className="flex min-h-screen flex-col overflow-x-clip border-x border-slate-200 bg-white">

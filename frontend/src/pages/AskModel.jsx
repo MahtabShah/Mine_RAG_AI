@@ -6,9 +6,35 @@ const API_URL = import.meta.env.VITE_API_URL;
 
 const suggestedQuestions = [
   {
+    title: "Worst disaster",
+    question:
+      "Describe the Chasnalla 1975 inundation disaster — what happened and what could have prevented it?",
+  },
+  {
+    title: "Gaslitand 1995",
+    question:
+      "What caused the Gaslitand mine inundation in 1995 and what were the key findings?",
+  },
+  {
+    title: "Recent cases",
+    question:
+      "List the water-related fatal accidents in non-coal mines between 2016 and 2022 with their locations and causes.",
+  },
+  {
+    title: "Regulatory framework",
+    question:
+      "What regulations under CMR, MMR and OMR govern water hazards and inundation prevention in Indian mines?",
+  },
+  {
+    title: "Common causes",
+    question:
+      "What are the most common root causes of inundation accidents across Indian coal and non-coal mines?",
+  },
+
+  {
     title: "Accident analysis",
     question:
-      "Analyze the causes and safety violations in the Jamadoba  mine inundation accident.",
+      "Analyze the causes and safety violations in the Jamadoba mine inundation accident.",
   },
   {
     title: "Historical disasters",
@@ -19,6 +45,71 @@ const suggestedQuestions = [
     title: "Prevention methods",
     question:
       "Explain the key DGMS safety measures for preventing mine inundation.",
+  },
+  {
+    title: "Statistical overview",
+    question:
+      "How many fatal accidents were caused by irruption of water and drowning in non-coal mines from 2013 to 2022?",
+  },
+  {
+    title: "Major disasters list",
+    question:
+      "Give me the full list of coal mine inundation disasters in India involving 4 or more deaths since 1901.",
+  },
+  {
+    title: "Pump station safety",
+    question:
+      "What safety failures led to the Khoodia 2020 inundation accident and how could it have been prevented?",
+  },
+  {
+    title: "Water management SOP",
+    question:
+      "What should a proper Standard Operating Procedure for mine dewatering and pump shifting include?",
+  },
+  {
+    title: "Early warning signs",
+    question:
+      "What warning signs precede an imminent inundation in an underground coal mine?",
+  },
+  {
+    title: "Withdrawal levels",
+    question:
+      "Explain the role of withdrawal levels and jore water monitoring in preventing mine inundation.",
+  },
+  {
+    title: "Barriers and dams",
+    question:
+      "How should water barriers and dams between active and abandoned workings be designed and maintained?",
+  },
+  {
+    title: "Court of inquiry",
+    question:
+      "Which inundation disasters in Indian coal mining led to a formal Court of Inquiry and what were the recommendations?",
+  },
+  {
+    title: "Prevention checklist",
+    question:
+      "Give me a practical pre-monsoon safety checklist for preventing inundation in an opencast coal mine.",
+  },
+  {
+    title: "Monsoon preparedness",
+    question:
+      "What precautions should be taken during heavy rainfall in an opencast mine near a waterlogged pit?",
+  },
+  {
+    title: "Non-coal mine cases",
+    question:
+      "Describe the Injepalli Limestone Mine drowning accident of 2019 and what could have prevented it.",
+  },
+  {
+    title: "Purnadih Nawada",
+    question:
+      "Explain how the Purnadih Nawada 2019 inundation occurred and the regulations that were violated.",
+  },
+  {
+    title: "Sludge and sand irruption",
+    question:
+      "What is a sludge or sand irruption in an underground mine and how does it differ from normal water inflow?",
   },
 ];
 
