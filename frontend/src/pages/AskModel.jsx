@@ -31,6 +31,8 @@ export default function AskModel() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
+  const API_URL = import.meta.env.VITE_API_URL;
+
   async function sendMessage(e) {
     e.preventDefault();
 
@@ -46,7 +48,7 @@ export default function AskModel() {
     setError("");
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/api/chat", {
+      const response = await fetch(`${API_URL}/api/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
