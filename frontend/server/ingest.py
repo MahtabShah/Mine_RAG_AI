@@ -131,7 +131,8 @@ def build_index(
         path
         for path in DATA_DIR.rglob("*")
         if path.is_file()
-        and path.suffix.lower() in {".txt", ".pdf"}
+        and path.suffix.lower() in {"docx"}
+        # and path.suffix.lower() in {".txt", ".pdf"}
     )
 
     if not files:
