@@ -1,6 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+
+const API_URL = import.meta.env.VITE_API_URL;
+
 const suggestedQuestions = [
   {
     title: "Accident analysis",
@@ -31,8 +34,6 @@ export default function AskModel() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  const API_URL = import.meta.env.VITE_API_URL;
-
   async function sendMessage(e) {
     e.preventDefault();
 
@@ -48,6 +49,7 @@ export default function AskModel() {
     setError("");
 
     try {
+      console.log("API_URL =", import.meta.env.VITE_API_URL);
       const response = await fetch(`${API_URL}/api/chat`, {
         method: "POST",
         headers: {

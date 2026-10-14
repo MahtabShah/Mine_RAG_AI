@@ -31,8 +31,7 @@ COLLECTION_NAME = "professor_knowledge_new"
 ALLOWED_ORIGINS = [
     origin
     for origin in [
-        VITE_FRONTEND_URL,
-        "http://localhost:5173",
+        VITE_FRONTEND_URL
     ]
     if origin
 ]

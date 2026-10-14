@@ -28,3 +28,6 @@ dist-ssr
 .venv/
 __pycache__/
 chroma_db/
+.env.local
+.env.local
+.env.*.local
